@@ -1,0 +1,42 @@
+global: {}
+
+cspName: lambda
+
+# Images published by .github/workflows/release-lambda.yml.
+# Override IMAGE_TAG below with the tag you built (e.g. v1.0.0 or a workflow_dispatch dev tag).
+image:
+  repository: lambdapublic.jfrog.io/lambda-mk8s-images/csp-health-monitor
+  tag: "IMAGE_TAG"
+  pullPolicy: IfNotPresent
+
+quarantineTriggerEngine:
+  image:
+    repository: lambdapublic.jfrog.io/lambda-mk8s-images/maintenance-notifier
+    pullPolicy: IfNotPresent
+
+configToml:
+  clusterName: "supernova-phase1"
+  lambda:
+    pollingIntervalSeconds: 30
+    apiEndpoint: "https://cloud.lambda.ai"
+
+lambdaApiKeySecret:
+  name: "lambda-api-key"
+  key: "LAMBDA_API_KEY"
+
+clientCertMountPath: ""
+
+processingStrategy: EXECUTE_REMEDIATION
+
+logLevel: info
+
+nodeSelector: {}
+
+tolerations:
+  - key: nvidia.com/gpu
+    operator: Equal
+    value: "true"
+    effect: NoSchedule
+  - key: nvidia.com/maintenance
+    operator: Exists
+    effect: NoSchedule

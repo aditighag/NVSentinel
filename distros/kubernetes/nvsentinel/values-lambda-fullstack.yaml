@@ -1,0 +1,98 @@
+global:
+  image:
+    tag: "v1.9.0"
+
+  mongodbStore:
+    enabled: true
+
+  # Only enable platform-connector (always on) + fault-quarantine for Phase 1
+  gpuHealthMonitor:
+    enabled: false
+  syslogHealthMonitor:
+    enabled: false
+  nicHealthMonitor:
+    enabled: false
+  kubernetesObjectMonitor:
+    enabled: false
+  labeler:
+    enabled: false
+  metadataCollector:
+    enabled: false
+  faultQuarantine:
+    enabled: true
+
+  # Tolerate GPU nodes and nodes under maintenance so platform-connector
+  # DaemonSet and fault-quarantine keep running on quarantined nodes
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Equal
+      value: "true"
+      effect: NoSchedule
+    - key: nvidia.com/maintenance
+      operator: Exists
+      effect: NoSchedule
+
+networkPolicy:
+  enabled: false
+
+# Upstream pins bitnamilegacy/mongodb:8.0.3-debian-12-r0 (amd64-only). Use
+# bitnami/mongodb:latest for multi-arch. For ARM-only clusters, prefer Percona:
+# mongodb-store.useBitnami=false + mongodb-store.usePerconaOperator=true.
+mongodb-store:
+  mongodb:
+    image:
+      registry: docker.io
+      repository: bitnami/mongodb
+      tag: latest
+    auth:
+      enabled: false
+    tls:
+      enabled: false
+    persistence:
+      enabled: false
+    pdb:
+      minAvailable: 0
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+  job:
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+
+platformConnector:
+  logLevel: info
+  mongodbStore:
+    clientCertMountPath: ""
+
+fault-quarantine:
+  clientCertMountPath: ""
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Equal
+      value: "true"
+      effect: NoSchedule
+  # Lambda maintenance event ruleset:
+  # - no cordon (avoid disrupting the node)
+  # - taint to mark the node as under maintenance
+  ruleSets:
+    - enabled: true
+      version: "1"
+      name: "Lambda CSP maintenance event ruleset"
+      match:
+        all:
+          - kind: "HealthEvent"
+            expression: "event.agent == 'csp-health-monitor' && event.checkName == 'CSPMaintenance' && event.isFatal == true"
+          - kind: "Node"
+            expression: |
+              !('k8saas.nvidia.com/ManagedByNVSentinel' in node.metadata.labels && node.metadata.labels['k8saas.nvidia.com/ManagedByNVSentinel'] == "false")
+      cordon:
+        shouldCordon: false
+      taint:
+        key: "nvidia.com/maintenance"
+        value: "scheduled"
+        effect: "NoSchedule"

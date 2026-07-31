@@ -1,0 +1,70 @@
+global: {}
+
+cspName: lambda
+
+# Images published by .github/workflows/release-lambda.yml. See values-lambda-prod.yaml.
+image:
+  repository: lambdapublic.jfrog.io/lambda-mk8s-images/csp-health-monitor
+  tag: "IMAGE_TAG"
+  pullPolicy: IfNotPresent
+
+quarantineTriggerEngine:
+  image:
+    repository: lambdapublic.jfrog.io/lambda-mk8s-images/maintenance-notifier
+    pullPolicy: IfNotPresent
+
+configToml:
+  clusterName: "supernova-phase1"
+  postMaintenanceHealthyDelayMinutes: 0
+  lambda:
+    pollingIntervalSeconds: 30
+    apiEndpoint: "https://cloud.lambdastaging.com"
+    # mockEventsJson documents the events to seed via the simulate API for testing.
+    # POST /api/v1/simulate/maintenance_events with each event to create them.
+    mockEventsJson:
+      events:
+        - id: "5f2a9c1b8e4d4f3a9b6c7d8e0f1a2b3c"
+          entity_lrns:
+            - "lrn:cloud:instance:06c1e2f8a20042be8d4617c83fa18b39"
+          maintenance_type: null
+          workspace_id: "0033b535eeac4c4ca4467b41f3b7952b"
+          detail: "Firmware upgrade"
+          urgency: "critical_with_deadline"
+          status: "scheduled"
+          not_before: "2026-10-01T00:00:00Z"
+          not_before_deadline: "2026-10-05T00:00:00Z"
+          not_after: "2026-10-02T00:00:00Z"
+          last_updated: "2026-06-01T10:00:00Z"
+        - id: "7c4e1a9d2b6f4831a5c9e0d3f7b1a2c4"
+          entity_lrns:
+            - "lrn:cloud:instance:06c1e2f8a20042be8d4617c83fa18b39"
+          maintenance_type: null
+          workspace_id: "0033b535eeac4c4ca4467b41f3b7952b"
+          detail: "Emergency cooling event"
+          urgency: "emergency"
+          status: "scheduled"
+          not_before: null
+          not_before_deadline: null
+          not_after: "2026-10-16T00:00:00Z"
+          last_updated: "2026-06-02T10:00:00Z"
+
+lambdaApiKeySecret:
+  name: "lambda-api-key"
+  key: "LAMBDA_API_KEY"
+
+clientCertMountPath: ""
+
+processingStrategy: EXECUTE_REMEDIATION
+
+logLevel: info
+
+nodeSelector: {}
+
+tolerations:
+  - key: nvidia.com/gpu
+    operator: Equal
+    value: "true"
+    effect: NoSchedule
+  - key: nvidia.com/maintenance
+    operator: Exists
+    effect: NoSchedule

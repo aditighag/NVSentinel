@@ -1,0 +1,57 @@
+global: {}
+
+cspName: lambda
+
+lambdaBinaries:
+  enabled: true
+  hostPath: /opt/nvsentinel/binaries
+  arch: arm64
+
+configToml:
+  clusterName: "supernova-phase1"
+  postMaintenanceHealthyDelayMinutes: 1
+  lambda:
+    pollingIntervalSeconds: 30
+    mockEventsFilePath: /etc/lambda/lambda-mock-events.json
+    mockEventsJson:
+      events:
+        - id: "lambda-maint-emergency-001"
+          entity_lrns:
+            - "lrn:lambda:us-east-1:instance/420ae39fbb3546de87d704313316b2e4"
+          maintenance_type: "FIRMWARE_UPGRADE"
+          detail: "Emergency firmware upgrade required on host"
+          urgency: "EMERGENCY"
+          status: "COMPLETED"
+          not_before: null
+          not_before_deadline: null
+          not_after: null
+          node_name: "static-cngkp-s6bcn"
+        - id: "lambda-maint-critical-001"
+          entity_lrns:
+            - "lrn:lambda:us-east-1:instance/420ae39fbb3546de87d704313316b2e4"
+          maintenance_type: "CVE_PATCH"
+          detail: "Critical CVE patch with scheduled deadline"
+          urgency: "CRITICAL_WITH_DEADLINE"
+          status: "COMPLETED"
+          not_before: "2026-06-17T10:00:00Z"
+          not_before_deadline: "2026-06-18T10:00:00Z"
+          not_after: "2026-06-18T12:00:00Z"
+          node_name: "static-cngkp-s6bcn"
+
+clientCertMountPath: ""
+
+processingStrategy: EXECUTE_REMEDIATION
+
+logLevel: info
+
+nodeSelector:
+  kubernetes.io/hostname: static-cngkp-s6bcn
+
+tolerations:
+  - key: nvidia.com/gpu
+    operator: Equal
+    value: "true"
+    effect: NoSchedule
+  - key: nvidia.com/maintenance
+    operator: Exists
+    effect: NoSchedule

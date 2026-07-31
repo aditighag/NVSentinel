@@ -1,0 +1,40 @@
+name: Release (Lambda Registry)
+
+# Builds csp-health-monitor and maintenance-notifier container images and
+# pushes them to Lambda's internal artifactory
+# (lambdapublic.jfrog.io/lambda-mk8s-images/{csp-health-monitor,maintenance-notifier}).
+#
+# Triggered by v* tag pushes (release cut) or manually via workflow_dispatch
+# (for testing a specific tag or branch head against the cluster).
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag to build and push (e.g. v1.2.3 or a dev tag). Git ref is selected via the "Use workflow from" dropdown in the GitHub UI.'
+        required: true
+        type: string
+
+jobs:
+  build-push-csp-health-monitor:
+    uses: lambdal/shared-workflows/.github/workflows/docker_image_build_push_saas.yaml@main
+    with:
+      repo: lambda-mk8s-images
+      image_name: csp-health-monitor
+      tag: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
+      build_context: .
+      dockerfile_relative_path: ./health-monitors/csp-health-monitor/Dockerfile.csp-health-monitor
+      platforms: linux/amd64,linux/arm64
+
+  build-push-maintenance-notifier:
+    uses: lambdal/shared-workflows/.github/workflows/docker_image_build_push_saas.yaml@main
+    with:
+      repo: lambda-mk8s-images
+      image_name: maintenance-notifier
+      tag: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
+      build_context: .
+      dockerfile_relative_path: ./health-monitors/csp-health-monitor/Dockerfile.maintenance-notifier
+      platforms: linux/amd64,linux/arm64
