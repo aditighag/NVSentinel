@@ -138,9 +138,14 @@ func (c *Client) Get(ctx context.Context, path string, query url.Values, out any
 		Jitter:   c.retry.jitter,
 	}
 
-	var lastErr error
+	var (
+		lastErr  error
+		attempts int
+	)
 
 	err := wait.ExponentialBackoffWithContext(ctx, backoff, func(ctx context.Context) (bool, error) {
+		attempts++
+
 		body, statusCode, doErr := c.doOnce(ctx, u, apiKey)
 		if doErr != nil {
 			// Transport-level failures (dial, TLS, i/o) are transient.
@@ -175,9 +180,11 @@ func (c *Client) Get(ctx context.Context, path string, query url.Values, out any
 		return nil
 	}
 
-	// Retry budget exhausted or context cancelled — surface the last observed error.
+	// Retry budget exhausted or context cancelled — surface the last observed error
+	// and the actual number of attempts made (not the configured max, which would
+	// misreport when we bailed early on a permanent error or cancelled context).
 	if lastErr != nil {
-		return fmt.Errorf("after %d attempts: %w", c.retry.maxAttempts, lastErr)
+		return fmt.Errorf("after %d attempts: %w", attempts, lastErr)
 	}
 
 	return err

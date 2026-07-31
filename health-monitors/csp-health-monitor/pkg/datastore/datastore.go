@@ -289,7 +289,7 @@ func (s *DatabaseStore) FindEmergencyEventsToTriggerQuarantine(
 	ctx context.Context,
 ) ([]model.MaintenanceEvent, error) {
 	statusFilter := client.BuildStatusFilter("status", model.StatusDetected)
-	urgencyFilter := client.NewFilterBuilder().Eq("metadata.urgency", "EMERGENCY").Build()
+	urgencyFilter := client.NewFilterBuilder().Eq("metadata.urgency", model.MetadataUrgencyEmergency).Build()
 
 	filter := client.NewFilterBuilder().
 		And(statusFilter, urgencyFilter).

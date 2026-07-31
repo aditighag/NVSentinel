@@ -266,16 +266,19 @@ func initActiveMonitor(
 	if cfg.Lambda.Enabled {
 		slog.Info("Lambda configuration is enabled.")
 
-		triggerTimeLimit := time.Duration(cfg.TriggerQuarantineWorkflowTimeLimitMinutes) * time.Minute
-		lambdaMonitor, err := lambdaclient.NewClient(ctx, cfg.Lambda, cfg.ClusterName, triggerTimeLimit, kubeconfigPath, store)
+		lambdaMonitor, err := lambdaclient.NewClient(ctx, cfg.Lambda, cfg.ClusterName, kubeconfigPath, store)
 		if err != nil {
-			metrics.CSPMonitorErrors.WithLabelValues(string(lambdaclient.CSPLambda), "init_error").Inc()
+			metrics.CSPMonitorErrors.WithLabelValues(string(model.CSPLambda), "init_error").Inc()
 			slog.Error("Failed to initialize Lambda monitor.", "error", err)
 
 			return nil
 		}
 
-		slog.Info("Lambda mock monitor initialized", "eventsFile", cfg.Lambda.MockEventsFilePath)
+		if cfg.Lambda.MockEventsFilePath != "" {
+			slog.Info("Lambda mock monitor initialized", "eventsFile", cfg.Lambda.MockEventsFilePath)
+		} else {
+			slog.Info("Lambda monitor initialized", "endpoint", cfg.Lambda.APIEndpoint)
+		}
 
 		return lambdaMonitor
 	}
